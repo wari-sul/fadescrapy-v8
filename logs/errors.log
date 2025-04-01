@@ -1,0 +1,114 @@
+2025-04-02 04:56:22,061 - db.game_repo - ERROR - Error in update_or_insert_data: Invalid data format - [update_or_insert_data:27]
+2025-04-02 04:56:22,063 - logging_setup - ERROR - Unexpected error in fetch_and_store_data for nba (Attempt 1): Invalid data format - [fetch_and_store_data:125]
+Traceback (most recent call last):
+  File "e:\Jobs\fadescrapy v8\utils\game_processing.py", line 110, in fetch_and_store_data
+    result = await loop.run_in_executor(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "e:\Jobs\fadescrapy v8\utils\game_processing.py", line 111, in <lambda>
+    None, lambda: db.update_or_insert_data(collection, data, target_date)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "e:\Jobs\fadescrapy v8\db\game_repo.py", line 11, in update_or_insert_data
+    raise ValueError("Invalid data format")
+ValueError: Invalid data format
+2025-04-02 04:56:28,289 - db.game_repo - ERROR - Error in update_or_insert_data: Invalid data format - [update_or_insert_data:27]
+2025-04-02 04:56:28,289 - logging_setup - ERROR - Unexpected error in fetch_and_store_data for nba (Attempt 2): Invalid data format - [fetch_and_store_data:125]
+Traceback (most recent call last):
+  File "e:\Jobs\fadescrapy v8\utils\game_processing.py", line 110, in fetch_and_store_data
+    result = await loop.run_in_executor(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "e:\Jobs\fadescrapy v8\utils\game_processing.py", line 111, in <lambda>
+    None, lambda: db.update_or_insert_data(collection, data, target_date)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "e:\Jobs\fadescrapy v8\db\game_repo.py", line 11, in update_or_insert_data
+    raise ValueError("Invalid data format")
+ValueError: Invalid data format
+2025-04-02 04:56:39,547 - db.game_repo - ERROR - Error in update_or_insert_data: Invalid data format - [update_or_insert_data:27]
+2025-04-02 04:56:39,548 - logging_setup - ERROR - Unexpected error in fetch_and_store_data for nba (Attempt 3): Invalid data format - [fetch_and_store_data:125]
+Traceback (most recent call last):
+  File "e:\Jobs\fadescrapy v8\utils\game_processing.py", line 110, in fetch_and_store_data
+    result = await loop.run_in_executor(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "e:\Jobs\fadescrapy v8\utils\game_processing.py", line 111, in <lambda>
+    None, lambda: db.update_or_insert_data(collection, data, target_date)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "e:\Jobs\fadescrapy v8\db\game_repo.py", line 11, in update_or_insert_data
+    raise ValueError("Invalid data format")
+ValueError: Invalid data format
+2025-04-02 04:56:54,554 - logging_setup - ERROR - Failed to fetch and store NBA data after 3 attempts for today. - [fetch_and_store_data:128]
+2025-04-02 04:57:04,633 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for today. - [fetch_and_store_data:128]
+2025-04-02 04:57:05,946 - db.game_repo - ERROR - Error in update_or_insert_data: Invalid data format - [update_or_insert_data:27]
+2025-04-02 04:57:07,063 - logging_setup - ERROR - Unexpected error in fetch_and_store_data for nba (Attempt 1): Invalid data format - [fetch_and_store_data:125]
+Traceback (most recent call last):
+  File "e:\Jobs\fadescrapy v8\utils\game_processing.py", line 110, in fetch_and_store_data
+    result = await loop.run_in_executor(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "e:\Jobs\fadescrapy v8\utils\game_processing.py", line 111, in <lambda>
+    None, lambda: db.update_or_insert_data(collection, data, target_date)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "e:\Jobs\fadescrapy v8\db\game_repo.py", line 11, in update_or_insert_data
+    raise ValueError("Invalid data format")
+ValueError: Invalid data format
+2025-04-02 04:57:07,697 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000001B94AB2F800> - [default_exception_handler:1826]
+2025-04-02 04:59:39,238 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for today. - [fetch_and_store_data:130]
+2025-04-02 04:59:50,699 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for 20250401. - [fetch_and_store_data:130]
+2025-04-02 04:59:50,757 - logging_setup - ERROR - Error in update_fade_alerts: object list can't be used in 'await' expression - [update_fade_alerts:76]
+Traceback (most recent call last):
+  File "e:\Jobs\fadescrapy v8\tasks\fade_alerts.py", line 17, in update_fade_alerts
+    pending_alerts = await db.get_pending_fade_alerts()
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: object list can't be used in 'await' expression
+2025-04-02 05:03:06,796 - logging_setup - ERROR - Error in cmd_nba: Router is already attached to <Dispatcher '0x1b45038bc50'> - [cmd_nba:50]
+Traceback (most recent call last):
+  File "e:\Jobs\fadescrapy v8\handlers\nba.py", line 47, in cmd_nba
+    await send_games_in_chunks(message, games, "nba")
+  File "e:\Jobs\fadescrapy v8\utils\message_helpers.py", line 60, in send_games_in_chunks
+    await send_long_message(message.chat.id, "\n".join(current_message_parts))
+  File "e:\Jobs\fadescrapy v8\utils\message_helpers.py", line 8, in send_long_message
+    from bot import bot  # Import here to avoid circular imports
+    ^^^^^^^^^^^^^^^^^^^
+  File "e:\Jobs\fadescrapy v8\bot.py", line 91, in <module>
+    register_all_handlers(dp)
+  File "e:\Jobs\fadescrapy v8\handlers\__init__.py", line 11, in register_all_handlers
+    register_admin_handlers(dp)
+  File "e:\Jobs\fadescrapy v8\handlers\admin.py", line 521, in register_admin_handlers
+    dp.include_router(router)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\router.py", line 248, in include_router
+    router.parent_router = self
+    ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\router.py", line 211, in parent_router
+    raise RuntimeError(f"Router is already attached to {self._parent_router!r}")
+RuntimeError: Router is already attached to <Dispatcher '0x1b45038bc50'>
+2025-04-02 05:03:15,396 - logging_setup - ERROR - Error in cmd_fadenba: process_new_fade_alerts() takes 2 positional arguments but 3 were given - [cmd_fadenba:26]
+Traceback (most recent call last):
+  File "e:\Jobs\fadescrapy v8\handlers\fade.py", line 23, in cmd_fadenba
+    await process_new_fade_alerts(message, games, "nba")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: process_new_fade_alerts() takes 2 positional arguments but 3 were given
+2025-04-02 05:03:35,864 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for 20250401. - [fetch_and_store_data:130]
+2025-04-02 05:05:26,188 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for today. - [fetch_and_store_data:130]
+2025-04-02 05:05:36,862 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for 20250401. - [fetch_and_store_data:130]
+2025-04-02 05:10:37,237 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for 20250401. - [fetch_and_store_data:130]
+2025-04-02 05:11:09,049 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x00000248F40A4BC0> - [default_exception_handler:1826]
+2025-04-02 05:11:52,023 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for today. - [fetch_and_store_data:130]
+2025-04-02 05:12:03,325 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for 20250401. - [fetch_and_store_data:130]
+2025-04-02 05:13:59,741 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for 20250401. - [fetch_and_store_data:130]
+2025-04-02 05:16:46,617 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000001207EA82A80> - [default_exception_handler:1826]
+2025-04-02 05:22:55,708 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for today. - [fetch_and_store_data:130]
+2025-04-02 05:23:06,835 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for 20250401. - [fetch_and_store_data:130]
+2025-04-02 05:23:39,692 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for 20250401. - [fetch_and_store_data:130]
+2025-04-02 05:24:02,294 - logging_setup - ERROR - Failed to fetch and store NCAAB data after 3 attempts for 20250401. - [fetch_and_store_data:130]
