@@ -18,6 +18,7 @@ nba_collection = db["nba"]
 ncaab_collection = db["ncaab"]
 fade_alerts_collection = db["fade_alerts"]
 users_collection = db["users"]
+raw_api_responses_collection = db["raw_api_responses"]
 
 def setup_indexes():
     """Creates indexes on the MongoDB collections."""
@@ -36,6 +37,21 @@ def setup_indexes():
         # Create indexes for users collection
         users_collection.create_index([("user_id", ASCENDING)])
         users_collection.create_index([("last_seen", ASCENDING)])
+        
+        # Create TTL index for raw responses (expire after 24 hours)
+        try:
+            raw_api_responses_collection.create_index(
+                [('fetched_at', ASCENDING)], 
+                expireAfterSeconds=86400 # 24 * 60 * 60 seconds
+            )
+            logger.info("TTL index created for raw_api_responses collection.")
+        except OperationFailure as e:
+            # Handle potential error if index already exists with different options
+            if 'Cannot create index' in str(e) and 'different options' in str(e):
+                logger.warning(f"TTL index on raw_api_responses already exists with different options: {e}")
+            else:
+                raise # Re-raise other errors
+
         
         logger.info("Database indexes created successfully")
     except Exception as e:
