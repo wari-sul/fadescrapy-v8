@@ -71,7 +71,7 @@ async def cmd_nbateam(message: types.Message):
         await fetch_and_store_data(date=date, sport="nba")
 
         # Get games by team name (case-insensitive search)
-        games = await db.get_game_by_team(db.nba_collection, date, team_name)
+        games = db.get_game_by_team(db.nba_collection, date, team_name) # Removed await
 
         if not games:
             await message.answer(
