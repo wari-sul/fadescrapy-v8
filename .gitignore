@@ -1,2 +1,9 @@
 /.env
 /__pycache__
+api/__pycache__/client.cpython-312.pyc
+api/__pycache__/nba.cpython-312.pyc
+api/__pycache__/ncaab.cpython-312.pyc
+db/__pycache__/connection.cpython-312.pyc
+db/__pycache__/raw_response_repo.cpython-312.pyc
+handlers/__pycache__/nba.cpython-312.pyc
+utils/__pycache__/game_processing.cpython-312.pyc
