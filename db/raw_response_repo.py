@@ -1,21 +1,22 @@
 import logging
 import pytz
 from datetime import datetime
-from .connection import db_connection # Assuming db_connection holds the client/db reference
+from .connection import db # Import the database object 'db'
 
 # Get logger
 logger = logging.getLogger(__name__)
 
-# Collection reference (adjust 'your_database_name' if needed)
+# Collection reference
 try:
-    # Ensure db_connection is not None before accessing attributes
-    if db_connection:
-        raw_api_responses_collection = db_connection.get_database().raw_api_responses
+    # Ensure db object is not None before accessing attributes
+    if db is not None: # Correct check for None
+        raw_api_responses_collection = db.raw_api_responses # Use db directly
     else:
-        logger.critical("Database connection (db_connection) is None. Cannot get raw_api_responses collection.")
+        logger.critical("Database object (db) is None. Cannot get raw_api_responses collection.")
         raw_api_responses_collection = None
 except AttributeError as e:
-    logger.critical(f"Failed to get raw_api_responses collection: {e}. Make sure db_connection is initialized correctly.")
+    # This might happen if the collection name is wrong or db object is malformed
+    logger.critical(f"Failed to get raw_api_responses collection from db object: {e}")
     raw_api_responses_collection = None
 
 def store_raw_response(sport: str, date_str: str, response_data: dict):
