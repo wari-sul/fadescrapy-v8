@@ -120,8 +120,9 @@ def format_fade_alert(game: dict, opportunity: dict, result_status: Optional[str
         faded_value = opportunity.get('faded_value') # Spread/Total value
         odds = opportunity.get('odds')
         implied_prob = opportunity.get('implied_probability')
-        tickets_pct = opportunity.get('T%')
-        money_pct = opportunity.get('M%')
+        # Accept either key format for flexibility
+        tickets_pct = opportunity.get('T%') or opportunity.get('tickets_percent')
+        money_pct = opportunity.get('M%') or opportunity.get('money_percent')
         rating = opportunity.get('rating', 0) # Get the rating
 
         if not all([market, faded_outcome_label, odds is not None, implied_prob is not None, tickets_pct is not None, money_pct is not None]):

@@ -470,7 +470,8 @@ async def process_new_fade_alerts(games: list, sport: str) -> List[str]:
             loop = asyncio.get_running_loop() # Get loop once per game if opportunities exist
             current_date_str = get_eastern_time_date()[0] # Already correct
 
-            for opp in potential_opportunities:
+            for opp_index, opp in enumerate(potential_opportunities): # Add index for logging
+                logger.debug(f"Processing opportunity {opp_index + 1}/{len(potential_opportunities)} for game {game_id_log}...")
                 try:
                     # Prepare data for storage and checking
                     # Map faded_outcome_label to a more structured representation if needed
@@ -496,21 +497,32 @@ async def process_new_fade_alerts(games: list, sport: str) -> List[str]:
                     }
 
                     # Check if this specific fade opportunity already exists
-                    existing = await loop.run_in_executor(
+                    # Check if a PENDING alert already exists
+                    existing_alert = await loop.run_in_executor(
                         None,
-                        lambda: get_fade_alerts_collection().find_one({ # Use the getter function
+                        lambda: get_fade_alerts_collection().find_one({
                             "game_id": alert_data['game_id'],
                             "market": alert_data['market'],
                             "faded_outcome_label": alert_data['faded_outcome_label'],
-                            "date": current_date_str # Only find if alert exists for the same date
+                            "date": current_date_str,
+                            "status": "pending" # Check specifically for pending status
                         })
                     )
-                    logger.info(f"[process_new_fade_alerts] Checked for existing alert for game {alert_data['game_id']}. Found: {'Yes' if existing else 'No'}") # Log after find_one
+                    logger.info(f"GAME {alert_data['game_id']} OPP {opp_index + 1}: Checked for existing PENDING alert. Found: {'Yes' if existing_alert else 'No'}")
 
-                    if not existing:
+                    alert_to_format = None # Initialize variable to hold the alert data for formatting
+
+                    if existing_alert:
+                        # Use the existing alert data for formatting
+                        alert_to_format = existing_alert
+                        logger.info(f"GAME {alert_data['game_id']} OPP {opp_index + 1}: Using existing alert {existing_alert.get('_id')}. alert_to_format set.")
+                    
+                    elif not existing_alert: # Only try to store if no existing PENDING alert was found
                         # Store the new fade alert and capture the result
                         def store_wrapper(data):
                             try:
+                                # Ensure 'created_at' is a datetime object before storing
+                                data['created_at'] = datetime.now()
                                 return store_fade_alert(**data)
                             except Exception as e:
                                 logger.error(f"[store_wrapper] Exception inside executor: {e}", exc_info=True)
@@ -522,20 +534,27 @@ async def process_new_fade_alerts(games: list, sport: str) -> List[str]:
                             alert_data # Pass data as argument to wrapper
                         )
                         store_successful = await store_future # Explicitly await the future
-                        logger.info(f"[process_new_fade_alerts] Awaited store_fade_alert for game {alert_data['game_id']}. Result: {store_successful}") # Log AFTER await completes
+                        logger.info(f"GAME {alert_data['game_id']} OPP {opp_index + 1}: Store attempt result: {store_successful}")
 
                         if store_successful:
-                            logger.info(f"Stored new {sport} fade alert: Game {alert_data['game_id']}, Market {alert_data['market']}, Fading {alert_data['faded_outcome_label']}") # This log might be redundant now but keep for check
-                            # Format the alert message for this opportunity (pending status)
-                            logger.info(f"[process_new_fade_alerts] Attempting to format message for game {game.get('game_id')} opp: {opp.get('faded_outcome_label')}...") # BEFORE CALL
-                            formatted_message = format_fade_alert(game=game, opportunity=opp, result_status="pending")
-                            logger.info(f"[process_new_fade_alerts] Formatting result for game {game.get('game_id')}: type={type(formatted_message).__name__}, value='{str(formatted_message)[:100]}...'") # AFTER CALL (Truncated value)
-                            if formatted_message:
-                                fade_alert_messages.append(formatted_message)
-                            else:
-                                 logger.warning(f"[process_new_fade_alerts] Failed to format message for new fade alert: Game {alert_data['game_id']}, Market {alert_data['market']} (formatted_message is falsy)") # MODIFIED WARNING
+                            # Use the newly created alert_data for formatting
+                            alert_to_format = alert_data
+                            logger.info(f"GAME {alert_data['game_id']} OPP {opp_index + 1}: Stored new alert. alert_to_format set.")
                         else:
-                            logger.error(f"[process_new_fade_alerts] Failed to store fade alert for game {alert_data['game_id']} (store_fade_alert returned False)")
+                            logger.error(f"GAME {alert_data['game_id']} OPP {opp_index + 1}: Failed to store alert. alert_to_format remains None.")
+
+                    # Format the message if we have an alert (either existing or newly stored)
+                    if alert_to_format:
+                        logger.info(f"GAME {alert_data['game_id']} OPP {opp_index + 1}: Attempting to format message using alert data: {alert_to_format.get('_id', 'NEW')}...")
+                        # Use alert_to_format which contains either the existing doc or the new data
+                        formatted_message = format_fade_alert(game=game, opportunity=alert_to_format, result_status="pending")
+                        logger.info(f"GAME {alert_data['game_id']} OPP {opp_index + 1}: Formatting result: type={type(formatted_message).__name__}, value='{str(formatted_message)[:100]}...'")
+                        if formatted_message:
+                            fade_alert_messages.append(formatted_message)
+                        else:
+                             logger.warning(f"GAME {alert_data['game_id']} OPP {opp_index + 1}: Formatting failed. Message not appended.")
+                    else: # Add this else block
+                        logger.warning(f"GAME {alert_data['game_id']} OPP {opp_index + 1}: No alert to format (neither existing nor newly stored). Message not appended.")
 
                 except Exception as inner_e:
                     logger.error(f"Error processing opportunity for game {game.get('id')}: {inner_e}", exc_info=True)
