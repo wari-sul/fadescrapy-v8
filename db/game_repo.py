@@ -46,7 +46,8 @@ def get_scheduled_games(collection, date):
                     "away_team_id": "$data.games.away_team_id",
                     "winning_team_id": "$data.games.winner_id",
                     "boxscore": "$data.games.boxscore",
-                    "markets": "$data.games.markets.15.event"
+                    "markets": "$data.games.markets.15.event",
+                    "odds": "$data.games.odds" # Added odds field for bet percentages
                 }
             }
         ]
@@ -114,7 +115,8 @@ def get_game_by_team(collection, date, team_name):
                     "away_team_id": "$data.games.away_team_id",
                     "winning_team_id": "$data.games.winner_id",
                     "boxscore": "$data.games.boxscore",
-                    "markets": "$data.games.markets.15.event"
+                    "markets": "$data.games.markets.15.event",
+                    "odds": "$data.games.odds" # Added odds field for bet percentages
                 }
             }
         ]
