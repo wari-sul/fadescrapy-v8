@@ -3,7 +3,10 @@ from datetime import datetime
 from aiogram import Dispatcher, types
 from aiogram.filters import Command
 from logging_setup import logger
-import db
+# Import specific functions instead of the whole db module
+from db.connection import get_nba_collection
+from db.game_repo import get_game_by_team
+from db.utils import get_eastern_time_date
 from utils.rate_limiter import rate_limited_command
 from utils.formatters import format_game_info
 from utils.message_helpers import send_games_in_chunks
@@ -24,12 +27,12 @@ async def cmd_nba(message: types.Message):
                 return
             try:
                 datetime.strptime(date_str, "%Y%m%d")
-                date, time_str = db.get_eastern_time_date(date_str)
+                date, time_str = get_eastern_time_date(date_str)
             except ValueError:
                 await message.answer(f"❌ Invalid date: {date_str}.")
                 return
         else:
-            date, time_str = db.get_eastern_time_date()
+            date, time_str = get_eastern_time_date()
 
         logger.info(f"User {message.from_user.id} requested NBA games for {date}")
 
@@ -62,7 +65,7 @@ async def cmd_nbateam(message: types.Message):
             return
 
         team_name = args[1].strip()
-        date, time_str = db.get_eastern_time_date()  # Search for today's games
+        date, time_str = get_eastern_time_date()  # Search for today's games
 
         logger.info(f"User {message.from_user.id} searched NBA teams for '{team_name}' on {date}")
 
@@ -71,7 +74,8 @@ async def cmd_nbateam(message: types.Message):
         await fetch_and_store_data(date=date, sport="nba")
 
         # Get games by team name (case-insensitive search)
-        games = db.get_game_by_team(db.nba_collection, date, team_name) # Removed await
+        # Use the collection getter function
+        games = get_game_by_team(get_nba_collection(), date, team_name)
 
         if not games:
             await message.answer(
