@@ -1,7 +1,7 @@
 from aiogram import Dispatcher, types
 from aiogram.filters import Command
 from logging_setup import logger
-import db
+from db.utils import get_eastern_time_date # Import specific function
 from utils.rate_limiter import rate_limited_command
 
 async def cmd_start(message: types.Message):
@@ -14,7 +14,7 @@ async def cmd_start(message: types.Message):
     # if is_new_user:
     #     await db.record_user_join(user.id, user.username, user.full_name)
 
-    eastern_date, eastern_time = db.get_eastern_time_date()
+    eastern_date, eastern_time = get_eastern_time_date()
     await message.answer(
         f"Hello, <b>{user.full_name}</b>! 👋\n\n"
         f"Welcome to the Sports Betting Info Bot.\n"
@@ -25,8 +25,8 @@ async def cmd_start(message: types.Message):
 
 async def cmd_help(message: types.Message):
     """Handle /help command."""
-    from config import is_admin
-    eastern_date, eastern_time = db.get_eastern_time_date()
+    from config import config # Import the config object
+    eastern_date, eastern_time = get_eastern_time_date()
 
     # Base help text for all users
     help_text = f"""
@@ -55,7 +55,7 @@ async def cmd_help(message: types.Message):
 """
 
     # Add admin commands if the user is an admin
-    if is_admin(message.from_user.id):
+    if config.is_admin(message.from_user.id): # Call is_admin on the config object
         help_text += """
 -----------------------------
 👮‍♂️ <b>Admin Commands:</b>
@@ -69,6 +69,7 @@ async def cmd_help(message: types.Message):
 /config [setting] [value] - View or update a bot configuration setting.
 /config list - List all configurable settings.
 /getlogs [lines] - Retrieve recent bot logs (default 50 lines).
+ /maintenance [on|off|clear|status] - Manage maintenance mode (uses separate DB).
 """
 
     help_text += f"\n-----------------------------\n🕒 Current Time: {eastern_date} {eastern_time}"
