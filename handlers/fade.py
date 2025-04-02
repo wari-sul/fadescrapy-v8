@@ -65,25 +65,15 @@ async def cmd_fades(message: types.Message):
     await message.answer(f"🔍 Fetching and analyzing games for all fade opportunities ({time_str})...")
 
     try:
+        nba_fade_messages = []
+        ncaab_fade_messages = []
+        any_nba_games = False
+        any_ncaab_games = False
+
         # Process NBA
         nba_games = await fetch_and_process_games("nba", date)
-
-        # Send collected messages
-        all_fade_messages = nba_fade_messages + ncaab_fade_messages
-        if all_fade_messages:
-            await message.answer("--- Fade Opportunities Found ---")
-            for alert_msg in all_fade_messages:
-                await message.answer(alert_msg)
-                await asyncio.sleep(0.1)
-        else:
-            # If neither NBA nor NCAAB had messages, give a summary message
-            if not nba_games and not ncaab_games:
-                 pass # Already handled by individual checks
-            elif not nba_fade_messages and not ncaab_fade_messages:
-                 await message.answer("✅ No significant fade opportunities found for either sport.")
-
-        nba_fade_messages = []
         if nba_games:
+            any_nba_games = True
             nba_fade_messages = await process_new_fade_alerts(nba_games, "nba")
             if not nba_fade_messages:
                  await message.answer("🏀 No significant NBA fade opportunities found.")
@@ -94,13 +84,24 @@ async def cmd_fades(message: types.Message):
 
         # Process NCAAB
         ncaab_games = await fetch_and_process_games("ncaab", date)
-        ncaab_fade_messages = []
         if ncaab_games:
+            any_ncaab_games = True
             ncaab_fade_messages = await process_new_fade_alerts(ncaab_games, "ncaab")
             if not ncaab_fade_messages:
                  await message.answer("🏫 No significant NCAAB fade opportunities found.")
         else:
             await message.answer(f"🏫 No NCAAB games found for today ({date}).")
+
+        # Send collected messages
+        all_fade_messages = nba_fade_messages + ncaab_fade_messages
+        if all_fade_messages:
+            await message.answer("--- Fade Opportunities Found ---")
+            for alert_msg in all_fade_messages:
+                await message.answer(alert_msg)
+                await asyncio.sleep(0.1)
+        elif any_nba_games or any_ncaab_games: # Only say no fades if games were actually checked
+             await message.answer("✅ No significant fade opportunities found for either sport.")
+        # If no games found for either, messages were already sent above.
 
         await message.answer("✅ Fade analysis complete.")
 
