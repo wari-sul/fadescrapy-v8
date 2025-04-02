@@ -121,3 +121,41 @@ def update_fade_alert_result(alert_id, status):
     except Exception as e:
         logger.error(f"Error updating fade alert result: {e}")
         return False
+
+def get_fade_alerts_since(date_str: str):
+    """Gets all fade alerts created on or after a specific date (YYYYMMDD)."""
+    try:
+        # Convert date string to datetime object at the start of the day in UTC
+        start_date = datetime.strptime(date_str, "%Y%m%d").replace(tzinfo=pytz.UTC)
+        query = {"created_at": {"$gte": start_date}}
+        # Fetch all matching alerts, sorted by creation time
+        return list(fade_alerts_collection.find(query).sort("created_at", -1))
+    except ValueError:
+        logger.error(f"Invalid date format provided to get_fade_alerts_since: {date_str}")
+        return []
+    except Exception as e:
+        logger.error(f"Error getting fade alerts since {date_str}: {e}")
+        return []
+
+def update_fade_performance_stats(stats_data: dict):
+    """Updates or inserts the overall fade performance statistics."""
+    # This function needs a dedicated collection or a specific document ID
+    # Assuming a 'performance_stats' collection for simplicity
+    try:
+        stats_collection = fade_alerts_collection.database["performance_stats"]
+        # Use a fixed ID to always update the same document
+        stats_collection.update_one(
+            {"_id": "fade_performance"},
+            {"$set": stats_data},
+            upsert=True
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Error updating fade performance stats: {e}")
+        return False
+
+def get_fade_alert_subscribers(game_id, sport):
+    """Placeholder: Get users subscribed to alerts for a specific game."""
+    # In a real implementation, this would query a user preferences/subscriptions table
+    logger.warning("Placeholder function get_fade_alert_subscribers called. Returning empty list.")
+    return [] # Return empty list for now

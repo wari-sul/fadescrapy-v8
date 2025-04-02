@@ -88,6 +88,4 @@ class Config:
 # Create the config instance
 config = Config()
 
-def is_admin(user_id):
-    """Check if a user is an admin."""
-    return user_id in ADMIN_IDS
+# Removed redundant standalone is_admin function

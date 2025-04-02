@@ -3,6 +3,9 @@ from datetime import datetime, timedelta # Added timedelta
 from typing import List, Dict, Optional, Tuple
 from logging_setup import logger
 import db
+import db.game_repo
+import db.alert_repo
+import db.utils
 from db.connection import fade_alerts_collection # Import the collection
 from db.alert_repo import store_fade_alert # Import the storage function
 from utils.game_processing import get_bet_percentages, get_spread_info
@@ -13,11 +16,11 @@ async def update_fade_alerts():
     """Update status of existing fade alerts for completed games."""
     logger.info("Updating status of fade alerts for completed games...")
     try:
-        date, _ = db.get_eastern_time_date() # Assuming this is okay as it might be quick/non-blocking
+        date, _ = db.utils.get_eastern_time_date() # Assuming this is okay as it might be quick/non-blocking
         
         # Get all pending fade alerts from database (run sync db call in executor)
         loop = asyncio.get_running_loop()
-        pending_alerts = await loop.run_in_executor(None, db.get_pending_fade_alerts)
+        pending_alerts = await loop.run_in_executor(None, db.alert_repo.get_pending_fade_alerts)
         if not pending_alerts:
             logger.info("No pending fade alerts to update.")
             return
@@ -39,7 +42,7 @@ async def update_fade_alerts():
                     
                 # Get latest game data (run sync db call in executor)
                 collection = db.nba_collection if sport == "nba" else db.ncaab_collection
-                game = await loop.run_in_executor(None, lambda: db.get_game_by_id(collection, game_id))
+                game = await loop.run_in_executor(None, lambda: db.game_repo.get_game_by_id(collection, game_id))
                 
                 if not game:
                     logger.warning(f"Game {game_id} not found for alert update.")
@@ -61,7 +64,7 @@ async def update_fade_alerts():
                 # Update alert status (run sync db call in executor)
                 new_status = "won" if winner_covered_spread else "lost"
                 alert_id = alert.get('_id') # Get id first for lambda
-                await loop.run_in_executor(None, lambda: db.update_fade_alert_status(alert_id, new_status))
+                await loop.run_in_executor(None, lambda: db.alert_repo.update_fade_alert_status(alert_id, new_status))
                 updated_count += 1
                 
                 
@@ -85,7 +88,7 @@ async def notify_fade_alert_result(game: dict, sport: str, faded_team_id: int, w
         loop = asyncio.get_running_loop()
         # Get subscribed users for this game/alert (run sync db call in executor)
         game_id = game.get('id') # Get id first for lambda
-        subscribers = await loop.run_in_executor(None, lambda: db.get_fade_alert_subscribers(game_id, sport))
+        subscribers = await loop.run_in_executor(None, lambda: db.alert_repo.get_fade_alert_subscribers(game_id, sport))
         if not subscribers:
             return  # No subscribers to notify
             
@@ -176,7 +179,7 @@ async def analyze_fade_performance():
         loop = asyncio.get_running_loop()
         # Get recent fade alerts (last 30 days) (run sync db call in executor)
         thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
-        fade_alerts = await loop.run_in_executor(None, lambda: db.get_fade_alerts_since(thirty_days_ago))
+        fade_alerts = await loop.run_in_executor(None, lambda: db.alert_repo.get_fade_alerts_since(thirty_days_ago))
         
         if not fade_alerts:
             logger.info("No fade alerts found for performance analysis.")
@@ -237,7 +240,7 @@ async def analyze_fade_performance():
         }
         
         # Run sync db call in executor
-        await loop.run_in_executor(None, lambda: db.update_fade_performance_stats(performance_data))
+        await loop.run_in_executor(None, lambda: db.alert_repo.update_fade_performance_stats(performance_data))
         logger.info(f"Updated fade performance stats: {win_percentage:.1f}% win rate ({won}/{won+lost})")
         
     except Exception as e:
@@ -296,7 +299,7 @@ async def process_new_fade_alerts(games: list, sport: str) -> List[str]:
                     alert_data = {
                         'game_id': game.get('game_id') or game.get('id'),
                         'sport': sport,
-                        'date': db.get_eastern_time_date()[0],
+                        'date': db.utils.get_eastern_time_date()[0],
                         'team_id': fade_team_id,
                         'spread_value': spread_value,
                         'tickets_percent': fade_tickets,

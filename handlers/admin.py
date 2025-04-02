@@ -5,7 +5,7 @@ import asyncio
 import time
 from datetime import datetime, timedelta
 
-from config import is_admin
+from config import config # Import config instead of is_admin
 from logging_setup import logger
 from utils.rate_limiter import rate_limited_command
 from utils.message_helpers import send_long_message
@@ -19,7 +19,7 @@ router = Router()
 @rate_limited_command()
 async def cmd_warn(message: types.Message):
     """Warn a user (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -81,7 +81,7 @@ async def cmd_warn(message: types.Message):
 @rate_limited_command()
 async def cmd_tempban(message: types.Message):
     """Temporarily ban a user (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -146,7 +146,7 @@ async def cmd_tempban(message: types.Message):
 @rate_limited_command()
 async def cmd_userinfo(message: types.Message):
     """View detailed user information and history (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -242,7 +242,7 @@ async def cmd_userinfo(message: types.Message):
 @rate_limited_command()
 async def cmd_banlist(message: types.Message):
     """View currently banned users (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -281,7 +281,7 @@ async def cmd_banlist(message: types.Message):
 @rate_limited_command()
 async def cmd_botstats(message: types.Message):
     """Displays bot performance and usage statistics (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -328,7 +328,7 @@ async def cmd_botstats(message: types.Message):
 @rate_limited_command()
 async def cmd_health(message: types.Message):
     """Checks system health (CPU, Memory) - Admin only."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -364,7 +364,7 @@ async def cmd_health(message: types.Message):
 @rate_limited_command(cooldown_message="Please wait at least 1 minute between broadcasts.")
 async def cmd_broadcast(message: types.Message):
     """Sends a message to all known users (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -422,7 +422,7 @@ async def cmd_broadcast(message: types.Message):
 @rate_limited_command()
 async def cmd_config(message: types.Message):
     """Views or updates bot configuration settings (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -474,7 +474,7 @@ async def cmd_config(message: types.Message):
 @rate_limited_command()
 async def cmd_getlogs(message: types.Message):
     """Retrieves recent bot logs (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
