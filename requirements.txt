@@ -2,5 +2,4 @@ aiogram>=3.19.0
 pymongo>=4.11.3
 requests>=2.32.3
 pytz>=2025.2
-python-dotenv>=0.15.0
 psutil>=7.0.0
