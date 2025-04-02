@@ -9,7 +9,10 @@ from utils.message_helpers import send_games_in_chunks
 from tasks.fade_alerts import update_fade_alerts
 from utils.game_processing import fetch_and_process_games # Correct location
 from tasks.fade_alerts import process_new_fade_alerts # Correct location and likely intended function
-import db
+# Import specific functions instead of the whole db module
+from db.connection import get_ncaab_collection
+from db.game_repo import get_game_by_team
+from db.utils import get_eastern_time_date
 
 # Create a router for NCAAB commands
 router = Router()
@@ -30,12 +33,12 @@ async def cmd_ncaab(message: types.Message):
                 return
             try:
                 datetime.strptime(date_str, "%Y%m%d")
-                date, time_str = db.get_eastern_time_date(date_str)
+                date, time_str = get_eastern_time_date(date_str)
             except ValueError:
                 await message.answer(f"❌ Invalid date: {date_str}.")
                 return
         else:
-            date, time_str = db.get_eastern_time_date()
+            date, time_str = get_eastern_time_date()
 
         logger.info(f"User {message.from_user.id} requested NCAAB games for {date}")
         games = await fetch_and_process_games("ncaab", date)
@@ -64,7 +67,7 @@ async def cmd_ncaabteam(message: types.Message):
             return
 
         team_name = args[1].strip()
-        date, time_str = db.get_eastern_time_date()
+        date, time_str = get_eastern_time_date()
 
         logger.info(f"User {message.from_user.id} searched NCAAB teams for '{team_name}' on {date}")
         await fetch_and_process_games("ncaab", date)
@@ -73,7 +76,8 @@ async def cmd_ncaabteam(message: types.Message):
         loop = asyncio.get_running_loop()
         games = await loop.run_in_executor(
             None, 
-            lambda: db.get_game_by_team(db.ncaab_collection, date, team_name)
+            # Use the imported functions and collection getter
+            lambda: get_game_by_team(get_ncaab_collection(), date, team_name)
         )
 
         if not games:
@@ -98,7 +102,7 @@ async def cmd_fadencaab(message: types.Message):
     """Handle /fadencaab command - Show NCAAB fade betting opportunities."""
     logger.info(f"User {message.from_user.id} requested NCAAB fade alerts.")
     try:
-        date, time_str = db.get_eastern_time_date()
+        date, time_str = get_eastern_time_date()
         games = await fetch_and_process_games("ncaab", date)
 
         if not games:
