@@ -3,6 +3,8 @@ from datetime import datetime, timedelta # Added timedelta
 from typing import List, Dict, Optional, Tuple
 from logging_setup import logger
 import db
+from db.connection import fade_alerts_collection # Import the collection
+from db.alert_repo import store_fade_alert # Import the storage function
 from utils.game_processing import get_bet_percentages, get_spread_info
 from utils.formatters import format_fade_alert, calculate_fade_rating # Added calculate_fade_rating
 from utils.game_processing import determine_winner # Corrected import location
@@ -308,17 +310,34 @@ async def process_new_fade_alerts(games: list, sport: str) -> List[str]:
                     loop = asyncio.get_running_loop() # Get loop inside this async function
                     game_id_for_check = alert_data['game_id'] # Get vars for lambda
                     team_id_for_check = fade_team_id
+                    # Check if alert already exists using find_one
                     existing = await loop.run_in_executor(
                         None,
-                        lambda: db.get_fade_alert_by_game_team(game_id_for_check, team_id_for_check)
+                        lambda: fade_alerts_collection.find_one({
+                            "game_id": game_id_for_check,
+                            "team_id": team_id_for_check
+                        })
                     )
                     
                     # The 'alert' variable here is the formatted message string from line 255
                     formatted_alert_message = alert
                     
                     if not existing:
-                        # Run sync db call in executor
-                        await loop.run_in_executor(None, lambda: db.store_fade_alert(alert_data))
+                        # Run sync db call in executor, passing individual args
+                        await loop.run_in_executor(
+                            None,
+                            lambda: store_fade_alert(
+                                game_id=alert_data['game_id'],
+                                sport=alert_data['sport'],
+                                date=alert_data['date'],
+                                team_id=alert_data['team_id'],
+                                spread_value=alert_data['spread_value'],
+                                tickets_percent=alert_data['tickets_percent'],
+                                money_percent=alert_data['money_percent'],
+                                rating=alert_data['rating'],
+                                status=alert_data['status']
+                            )
+                        )
                         # Append the formatted message, not the raw data
                         fade_alert_messages.append(formatted_alert_message)
                         logger.info(f"Stored new {sport} fade alert for team {fade_team_id} in game {alert_data['game_id']}")
