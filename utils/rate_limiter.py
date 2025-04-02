@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import Tuple, Optional
 from aiogram import types
 from logging_setup import logger
-from config import ADMIN_IDS, COMMAND_TIMEOUT, is_admin
+from config import ADMIN_IDS, COMMAND_TIMEOUT, config # Import config instead of is_admin
 from services.metrics import metrics
 
 class RateLimiter:
@@ -80,7 +80,7 @@ def rate_limited_command(cooldown_message="Please wait before using this command
             user_id = message.from_user.id
             
             # Skip rate limiting for admins
-            if is_admin(user_id):
+            if config.is_admin(user_id): # Use config.is_admin()
                 # Log command but don't rate limit
                 command = message.text.split()[0].lower() if hasattr(message, 'text') and message.text and message.text.startswith('/') else "unknown"
                 start_time = time.monotonic()

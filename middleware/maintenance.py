@@ -1,5 +1,5 @@
 import asyncio
-from config import config, is_admin
+from config import config # Removed is_admin import
 from logging_setup import logger
 
 class MaintenanceMiddleware:
@@ -8,7 +8,8 @@ class MaintenanceMiddleware:
         is_maintenance = await config.get_setting('maintenance_mode', False)
         if is_maintenance:
             user = data.get("event_from_user")
-            if user and not is_admin(user.id):  # Allow admins during maintenance
+            # Use the config object's method to check admin status
+            if user and not config.is_admin(user.id):  # Allow admins during maintenance
                 try:
                     await event.answer("🔧 The bot is currently undergoing maintenance. Please try again later.")
                 except Exception:

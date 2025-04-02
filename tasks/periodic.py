@@ -5,7 +5,9 @@ import os
 from logging_setup import logger
 from config import config
 from aiogram import Bot
-import db
+from db.utils import get_eastern_time_date # Import specific function
+# Need to check where rate_limiter comes from for line 52
+from utils.rate_limiter import rate_limiter # Assuming it's imported correctly
 from utils.game_processing import fetch_and_store_data
 from services.alert_monitor import alert_monitor
 from services.metrics import metrics
@@ -28,7 +30,7 @@ async def periodic_tasks(bot: Bot):
 
             # --- Data Updates ---
             # Run data fetches concurrently
-            date_today, _ = db.get_eastern_time_date()
+            date_today, _ = get_eastern_time_date()
             nba_fetch_task = asyncio.create_task(fetch_and_store_data(date=date_today, sport="nba"))
             ncaab_fetch_task = asyncio.create_task(fetch_and_store_data(date=date_today, sport="ncaab"))
 

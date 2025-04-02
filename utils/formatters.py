@@ -2,7 +2,7 @@ from typing import Optional, Dict, Tuple
 from datetime import datetime
 import logging
 from logging_setup import logger
-from utils.game_processing import get_bet_percentages, get_spread_info
+from utils.game_processing import get_spread_info # Removed get_bet_percentages
 
 def get_game_status_icon(status: str) -> str:
     """Returns appropriate icon for game status."""
@@ -20,26 +20,7 @@ def get_game_status_icon(status: str) -> str:
     status_lower = status.lower().replace('_', '').replace('-', '')
     return status_map.get(status_lower, f"❓ {status.title()}") # Default with original status
 
-def calculate_fade_rating(bet_percent: Optional[float], money_percent: Optional[float]) -> int:
-    """Calculate fade rating (0-5 stars) based on betting percentages."""
-    if bet_percent is None or money_percent is None:
-        return 0  # Cannot calculate rating without data
-        
-    # NEW RATING SYSTEM
-    # 5 Stars: Both <10%
-    if bet_percent < 10 and money_percent < 10:
-        return 5
-        
-    # 4 Stars: One <10%, the other <20%
-    if (bet_percent < 10 and money_percent < 20) or (money_percent < 10 and bet_percent < 20):
-        return 4
-        
-    # 3 Stars: Both <20%
-    if bet_percent < 20 and money_percent < 20:
-        return 3
-        
-    # Default fallback (shouldn't happen with our criteria)
-    return 0
+# calculate_fade_rating_v2 moved to utils/game_processing.py to avoid circular import
 
 def format_game_info(game: dict, sport: str = "nba") -> str:
     """Format game information for display."""
@@ -100,145 +81,158 @@ def format_game_info(game: dict, sport: str = "nba") -> str:
         logger.error(f"Error formatting game info: {e}", exc_info=True)
         return "Error formatting game information"
 
-def format_fade_alert(game: dict, sport: str = "nba", completed: bool = False, winner_covered_spread: Optional[bool] = None) -> Optional[str]:
-    """Format fade alert message based on game state."""
+def format_fade_alert(game: dict, opportunity: dict, result_status: Optional[str] = "pending") -> Optional[str]:
+    """
+    Formats a fade alert message based on the opportunity data and result status,
+    using the Ticket% vs Implied Probability formula and includes star rating (Structure V4.11).
+
+    Args:
+        game: The game data dictionary.
+        opportunity: The fade opportunity dictionary from find_fade_opportunities.
+        result_status: The status of the alert ('pending', 'won', 'lost', None).
+
+    Returns:
+        A formatted string message or None if formatting fails.
+    """
     try:
+        # --- Extract Game Info ---
         home_team = game.get('home_team')
         away_team = game.get('away_team')
-        if not home_team or not away_team: return None
+        # --- Add Logging ---
+        game_id_fmt = game.get('game_id', 'N/A')
+        logger.info(f"[format_fade_alert] Checking game {game_id_fmt}. Game keys: {list(game.keys())}. Home team type: {type(home_team).__name__}, Away team type: {type(away_team).__name__}")
+        # --- End Logging ---
+        # Use team abbreviations if display names are missing/long
+        home_display = home_team.get('abbr') if home_team else 'Home'
+        away_display = away_team.get('abbr') if away_team else 'Away'
+        if not home_team or not away_team:
+             logger.warning(f"[format_fade_alert] Returning None because home_team or away_team is missing/falsy for game {game_id_fmt}")
+             return None # Need team objects
 
-        # Correctly get team IDs from either 'id' field or directly from game
-        home_id = home_team.get('id') or game.get('home_team_id')
-        away_id = away_team.get('id') or game.get('away_team_id')
-        if not home_id or not away_id: 
-            logger.debug(f"Missing team IDs in game {game.get('id') or game.get('game_id')}")
+        sport = opportunity.get('sport', 'unknown')
+        sport_name = 'NBA' if sport == 'nba' else 'NCAAB' if sport == 'ncaab' else sport.upper()
+        game_status = game.get('status', 'unknown')
+        game_id_log = opportunity.get('game_id', 'N/A') # For logging
+
+        # --- Extract Opportunity Info ---
+        market = opportunity.get('market')
+        faded_outcome_label = opportunity.get('faded_outcome_label')
+        faded_value = opportunity.get('faded_value') # Spread/Total value
+        odds = opportunity.get('odds')
+        implied_prob = opportunity.get('implied_probability')
+        # Accept either key format for flexibility
+        tickets_pct = opportunity.get('T%') or opportunity.get('tickets_percent')
+        money_pct = opportunity.get('M%') or opportunity.get('money_percent')
+        rating = opportunity.get('rating', 0) # Get the rating
+
+        if not all([market, faded_outcome_label, odds is not None, implied_prob is not None, tickets_pct is not None, money_pct is not None]):
+            logger.warning(f"Incomplete opportunity data for formatting: {game_id_log}")
             return None
 
-        home_display = home_team.get('display_name', 'Home Team')
-        away_display = away_team.get('display_name', 'Away Team')
+        # --- Determine "Bet Against" Side and Value ---
+        bet_against_label = "N/A"
+        bet_against_value_str = "" # For spread/total value
 
-        # Get betting percentages for both teams
-        home_tickets, home_money = get_bet_percentages(game, home_id)
-        away_tickets, away_money = get_bet_percentages(game, away_id)
+        if market == 'Spread':
+            opponent_spread_val = None
+            if faded_value is not None:
+                try:
+                    opponent_spread_val = -float(faded_value)
+                    bet_against_value_str = f"{opponent_spread_val:+.1f}" # Always show sign
+                except (ValueError, TypeError):
+                    bet_against_value_str = "N/A"
 
-        # Add debug logging
-        logger.debug(f"Game {game.get('id') or game.get('game_id')}: Home ({home_id}): {home_tickets}%/{home_money}%, Away ({away_id}): {away_tickets}%/{away_money}%")
+            if faded_outcome_label == 'Home':
+                bet_against_label = f"{away_display} {bet_against_value_str}"
+            elif faded_outcome_label == 'Away':
+                bet_against_label = f"{home_display} {bet_against_value_str}"
 
-        # Check if we have valid betting data
-        if None in (home_tickets, home_money, away_tickets, away_money):
-            logger.debug(f"Missing betting data for game {game.get('id') or game.get('game_id')}")
-            return None
+        elif market == 'Total':
+            bet_against_value_str = str(faded_value) if faded_value is not None else "N/A"
+            if faded_outcome_label == 'Over':
+                bet_against_label = f"Under {bet_against_value_str}"
+            elif faded_outcome_label == 'Under':
+                bet_against_label = f"Over {bet_against_value_str}"
 
-        # NEW LOGIC: Identify fade candidates where both percentages are low
-        fade_candidate = None
-        fade_team_id = None
-        fade_tickets = None
-        fade_money = None
-        opponent_display = None
+        elif market == 'Moneyline':
+            # No value string needed for ML bet against label
+            if faded_outcome_label == 'Home':
+                bet_against_label = f"{away_display} ML"
+            elif faded_outcome_label == 'Away':
+                bet_against_label = f"{home_display} ML"
 
-        if home_tickets < 20 and home_money < 20:
-            fade_candidate = home_team
-            fade_team_id = home_id
-            fade_tickets, fade_money = home_tickets, home_money
-            opponent_display = away_display
-        elif away_tickets < 20 and away_money < 20:
-            fade_candidate = away_team
-            fade_team_id = away_id
-            fade_tickets, fade_money = away_tickets, away_money
-            opponent_display = home_display
+        # --- Format Faded Outcome Value ---
+        faded_value_str = ""
+        if faded_value is not None and market != 'Moneyline': # ML value is usually 0
+             try:
+                 faded_val_num = float(faded_value)
+                 faded_value_str = f" ({faded_val_num:+.1f})" if market == 'Spread' else f" ({faded_val_num})"
+             except (ValueError, TypeError):
+                 faded_value_str = f" ({faded_value})"
 
-        if not fade_candidate:
-            return None # No fade opportunity found
+        faded_outcome_full_label = f"{faded_outcome_label}{faded_value_str}"
 
-        fade_display = fade_candidate.get('display_name', 'Faded Team')
+        # --- Build Message (Structure V4.11) ---
+        message_lines = []
+        stars = "⭐" * rating
+        header_icon = "🚨"
+        result_prefix = "Take" # Default for pending
 
-        # Get spread info for the fade candidate
-        spread_value_str, spread_odds_str = get_spread_info(game, fade_team_id)
-        if spread_value_str is None: 
-            logger.debug(f"Missing spread value for team {fade_team_id} in game {game.get('id') or game.get('game_id')}")
-            return None # Need spread value
+        if result_status == 'won':
+            header_icon = "✅"
+            result_prefix = "✅ Result: Fade Won - Took"
+        elif result_status == 'lost':
+            header_icon = "❌"
+            result_prefix = "❌ Result: Fade Lost - Took"
 
-        # Format spread value nicely (+ sign if positive)
-        try:
-            spread_val_num = float(spread_value_str)
-            formatted_spread = f"+{spread_val_num}" if spread_val_num > 0 else str(spread_val_num)
-        except ValueError:
-            formatted_spread = spread_value_str # Use as is if not number
+        # Header
+        # Remove stars from header
+        message_lines.append(f"{header_icon} <b>{sport_name} Fade Alert</b> {header_icon}")
 
-        # Calculate fade rating
-        rating = calculate_fade_rating(fade_tickets, fade_money)
-        
-        # Use a lower threshold for testing
-        min_rating_threshold = 2  # Lower threshold for testing (default was 3)
-        if rating < min_rating_threshold:
-            return None # Only show opportunities meeting threshold
-
-        stars = "⭐️" * rating
-        sport_name = 'NBA' if sport == 'nba' else 'NCAA Basketball'
-        icon = "🏀" if sport == 'nba' else "🏫"
-
-        # Common header info
-        header = [
-            f"Fade Alert ({sport_name}) {icon}",
-            f"Game: {away_display} @ {home_display}",
-            f"Fading: <b>{fade_display} ({formatted_spread})</b>",
-            f"Tickets%: {fade_tickets:.1f}% vs Money%: {fade_money:.1f}%",
-            f"Rating: {stars} ({rating}-Star)",
-        ]
-
-        # Message based on game state
-        if not completed:
-            # Pre-game alert
-            message_lines = [
-                f"🚨 {header[0]} 🚨",
-                header[1],
-                header[2],
-                f"Reason: Low ticket count ({fade_tickets:.1f}%) and low money ({fade_money:.1f}%) suggest weak public interest.",
-                header[4],
-                f"Bet Against: <b>{fade_display} {formatted_spread}</b> (Odds: {spread_odds_str or 'N/A'})",
-            ]
-            # Add start time if available
+        # Game Info
+        message_lines.append(f"<b>Game:</b> {away_display} <b>vs</b> {home_display}")
+        if game_status.lower() in ['complete', 'closed', 'final']:
+            boxscore = game.get('boxscore', {})
+            away_score = boxscore.get('total_away_points', '?')
+            home_score = boxscore.get('total_home_points', '?')
+            message_lines.append(f"<b>Status:</b> Final Score: {away_display} {away_score} - {home_score} {home_display}")
+        else:
             start_time_str = game.get('start_time')
+            time_display = "Time N/A"
             if start_time_str:
                 try:
                     start_dt = datetime.strptime(start_time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-                    start_formatted = start_dt.strftime("%I:%M %p UTC")
-                    message_lines.append(f"⏰ Starts: {start_formatted}")
+                    time_display = start_dt.strftime("%I:%M %p UTC") # Consider converting to user's timezone later
                 except ValueError:
-                    pass
-                    
-        else:
-            # Post-game result logic
-            if winner_covered_spread is True:
-                result_icon = "✅✅✅"
-                result_text = "Fade Successful!"
-                outcome = f"Result: {opponent_display} covered the spread against {fade_display}."
-            elif winner_covered_spread is False:
-                result_icon = "❌❌❌"
-                result_text = "Fade Failed"
-                outcome = f"Result: {fade_display} covered the spread."
-            else:
-                result_icon = "❓❓❓"
-                result_text = "Fade Result Uncertain"
-                outcome = "Result: Outcome unclear (push or data issue)."
+                    time_display = start_time_str
+            status_icon = get_game_status_icon(game_status)
+            message_lines.append(f"<b>Status:</b> {time_display} - {status_icon}")
 
-            message_lines = [
-                f"{result_icon} {result_text} ({sport_name}) {result_icon}",
-                header[1],
-                header[2],
-                header[3],
-                header[4],
-                outcome,
-            ]
+        # Analysis
+        message_lines.append(f"\n📊 <b>Analysis (Book ID 15 - Public Betting):</b>")
+        # Remove bullet points and leading spaces
+        message_lines.append(f"<b>Public Favors:</b> {faded_outcome_full_label} <b>({tickets_pct:.1f}% of tickets)</b>")
+        message_lines.append(f"Money %: {money_pct:.1f}%")
+        message_lines.append(f"Odds: {odds} (Implied Probability: {implied_prob:.1f}%)")
 
-        # Add game scores if available and completed
-        if completed and game.get('boxscore'):
-            away_score = game['boxscore'].get('total_away_points', '?')
-            home_score = game['boxscore'].get('total_home_points', '?')
-            message_lines.append(f"Final Score: {away_display} {away_score} - {home_score} {home_display}")
+        # Fade Signal
+        t_minus_ip = tickets_pct - implied_prob
+        message_lines.append(f"\n📉 <b>Fade Signal:</b> Public betting (Ticket %) is significantly higher (<b>{t_minus_ip:.1f}%</b>) than the odds suggest ({implied_prob:.1f}%), and the money flow ({money_pct:.1f}%) isn't strongly backing the public trend.")
 
-        return "\n".join(message_lines)
+        # Recommendation
+        message_lines.append(f"\n✅ <b>Suggested Fade:</b>")
+        # Remove bullet points and leading spaces
+        message_lines.append(f"{result_prefix} <b>{bet_against_label}</b>")
+
+            # Add Fade Rating at the end (indent this inside the try block)
+        message_lines.append(f"\nFade Rating : {stars}") # Correct indentation
+
+            # Return inside the try block
+        return "\n".join(message_lines) # Correct indentation
+        # Remove the duplicate/mis-indented return statement
 
     except Exception as e:
-        logger.error(f"Error formatting fade alert for game {game.get('game_id')}: {e}", exc_info=True)
+        game_id_log = opportunity.get('game_id', 'UNKNOWN')
+        faded_label_log = opportunity.get('faded_outcome_label', 'UNKNOWN')
+        logger.error(f"Error formatting fade alert for game {game_id_log}, opp: {faded_label_log}: {e}", exc_info=True)
         return None # Return None on error

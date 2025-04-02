@@ -1,0 +1,27 @@
+[Unit]
+Description=FadeScrapy Telegram Bot Service
+After=network.target
+
+[Service]
+# Consider creating a dedicated user instead of running as root for security
+User=root
+Group=root
+
+# Updated path to the bot's code directory
+WorkingDirectory=/root/bot/fadescrapy
+# Ensure the .env file exists at this path
+EnvironmentFile=/root/bot/fadescrapy/.env
+
+# Ensure the path to python within the virtual environment is correct
+# Assumes a virtual environment named 'venv' inside the WorkingDirectory
+ExecStart=/root/bot/fadescrapy/venv/bin/python run.py
+
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fadescrapy
+
+[Install]
+WantedBy=multi-user.target

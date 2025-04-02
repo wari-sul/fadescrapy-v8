@@ -5,13 +5,15 @@ import asyncio
 import time
 from datetime import datetime, timedelta
 
-from config import is_admin
+from config import config # Import config instead of is_admin
 from logging_setup import logger
 from utils.rate_limiter import rate_limited_command
 from utils.message_helpers import send_long_message
 from services.user_manager import user_manager
 from services.metrics import metrics
 from services.alert_monitor import alert_monitor
+from db.connection import is_maintenance_mode, set_maintenance_mode, clear_maintenance_collections
+
 
 router = Router()
 
@@ -19,7 +21,7 @@ router = Router()
 @rate_limited_command()
 async def cmd_warn(message: types.Message):
     """Warn a user (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -81,7 +83,7 @@ async def cmd_warn(message: types.Message):
 @rate_limited_command()
 async def cmd_tempban(message: types.Message):
     """Temporarily ban a user (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -146,7 +148,7 @@ async def cmd_tempban(message: types.Message):
 @rate_limited_command()
 async def cmd_userinfo(message: types.Message):
     """View detailed user information and history (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -242,7 +244,7 @@ async def cmd_userinfo(message: types.Message):
 @rate_limited_command()
 async def cmd_banlist(message: types.Message):
     """View currently banned users (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -281,7 +283,7 @@ async def cmd_banlist(message: types.Message):
 @rate_limited_command()
 async def cmd_botstats(message: types.Message):
     """Displays bot performance and usage statistics (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -328,7 +330,7 @@ async def cmd_botstats(message: types.Message):
 @rate_limited_command()
 async def cmd_health(message: types.Message):
     """Checks system health (CPU, Memory) - Admin only."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -364,7 +366,7 @@ async def cmd_health(message: types.Message):
 @rate_limited_command(cooldown_message="Please wait at least 1 minute between broadcasts.")
 async def cmd_broadcast(message: types.Message):
     """Sends a message to all known users (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -422,7 +424,7 @@ async def cmd_broadcast(message: types.Message):
 @rate_limited_command()
 async def cmd_config(message: types.Message):
     """Views or updates bot configuration settings (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -474,7 +476,7 @@ async def cmd_config(message: types.Message):
 @rate_limited_command()
 async def cmd_getlogs(message: types.Message):
     """Retrieves recent bot logs (admin only)."""
-    if not is_admin(message.from_user.id):
+    if not config.is_admin(message.from_user.id):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
@@ -516,6 +518,51 @@ async def cmd_getlogs(message: types.Message):
         await message.answer(f"❌ Error retrieving logs: {type(e).__name__}: {e}")
 
 
+
+@router.message(Command("maintenance"))
+@rate_limited_command()
+async def cmd_maintenance(message: types.Message):
+    """Manage bot maintenance mode (admin only)."""
+    if not config.is_admin(message.from_user.id):
+        await message.answer("❌ This command is restricted to administrators.")
+        return
+
+    args = message.text.split(maxsplit=1)
+    subcommand = args[1].lower() if len(args) > 1 else "status"
+
+    logger.info(f"Admin {message.from_user.id} used /maintenance {subcommand}")
+
+    try:
+        if subcommand == "on":
+            set_maintenance_mode(True)
+            await message.answer("🔧 Maintenance mode **enabled**. Bot will use separate 'maintenance_*' collections.")
+        elif subcommand == "off":
+            set_maintenance_mode(False)
+            await message.answer("✅ Maintenance mode **disabled**. Bot is using normal collections.")
+        elif subcommand == "status":
+            status = is_maintenance_mode()
+            await message.answer(f"🔧 Maintenance mode is currently **{'ENABLED' if status else 'DISABLED'}**.")
+        elif subcommand == "clear":
+            if not is_maintenance_mode():
+                await message.answer("⚠️ Cannot clear maintenance data: Maintenance mode is currently **DISABLED**.")
+                return
+            
+            await message.answer("⏳ Clearing maintenance data (collections starting with 'maintenance_')... This might take a moment.")
+            success = clear_maintenance_collections() # This is synchronous
+            if success:
+                await message.answer("✅ Maintenance data cleared successfully.")
+            else:
+                await message.answer("❌ Failed to clear maintenance data. Check logs.")
+        else:
+            await message.answer("Usage: /maintenance [on|off|clear|status]")
+
+    except Exception as e:
+        logger.error(f"Error in /maintenance command: {e}", exc_info=True)
+        await message.answer("❌ An error occurred while managing maintenance mode.")
+
+
 def register_admin_handlers(dp):
     """Register all admin command handlers."""
+    router.message.register(cmd_maintenance, Command("maintenance"))
+
     dp.include_router(router)

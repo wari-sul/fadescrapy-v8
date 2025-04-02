@@ -42,10 +42,12 @@ def get_eastern_time_date(date_str=None):
         try:
             # Parse the input date string (assumed format: YYYYMMDD)
             dt_obj = datetime.strptime(date_str, "%Y%m%d")
-            # Convert to Eastern Time
-            et_datetime = dt_obj.replace(tzinfo=pytz.UTC).astimezone(et_timezone)
-            et_date_str = et_datetime.strftime("%Y%m%d")
-            et_time_str = et_datetime.strftime("%I:%M %p ET")
+            # Localize the naive datetime directly to ET
+            et_datetime = et_timezone.localize(dt_obj)
+            et_date_str = et_datetime.strftime("%Y%m%d") # Should now correctly return the input date string
+            # Get the current time in ET for the time string part (as the input date has no time)
+            now_et = datetime.now(et_timezone)
+            et_time_str = now_et.strftime("%I:%M %p ET")
             return et_date_str, et_time_str
         except ValueError as e:
             logger.error(f"Invalid date format: {date_str}. Error: {e}")
