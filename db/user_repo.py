@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 import pytz
-from .connection import users_collection
+from .connection import get_users_collection # Import the getter function
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ async def save_user_stats(user_id, commands, last_seen, join_date=None, ban_hist
             update_data["warning_history"] = warning_history
         
         # Upsert the user document
-        result = users_collection.update_one(
+        result = get_users_collection().update_one(
             {"user_id": user_id},
             {"$set": update_data},
             upsert=True
