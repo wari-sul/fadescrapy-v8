@@ -177,25 +177,44 @@ def format_fade_alert(game: dict, sport: str = "nba", completed: bool = False, w
         sport_name = 'NBA' if sport == 'nba' else 'NCAA Basketball'
         icon = "🏀" if sport == 'nba' else "🏫"
 
-        # Common header info
-        header = [
-            f"Fade Alert ({sport_name}) {icon}",
-            f"Game: {away_display} @ {home_display}",
-            f"Fading: <b>{fade_display} ({formatted_spread})</b>",
-            f"Tickets%: {fade_tickets:.1f}% vs Money%: {fade_money:.1f}%",
-            f"Rating: {stars} ({rating}-Star)",
-        ]
+        # Determine opponent and get their spread
+        opponent_display = None
+        opponent_spread_str = None
+        if fade_team_id == home_id:
+            opponent_id = away_id
+            opponent_display = away_display
+            opponent_spread_str, _ = get_spread_info(game, opponent_id)
+        else:
+            opponent_id = home_id
+            opponent_display = home_display
+            opponent_spread_str, _ = get_spread_info(game, opponent_id)
+            
+        # Format opponent spread
+        formatted_opponent_spread = ""
+        if opponent_spread_str:
+             try:
+                 opp_spread_num = float(opponent_spread_str)
+                 formatted_opponent_spread = f"+{opp_spread_num}" if opp_spread_num > 0 else str(opp_spread_num)
+             except ValueError:
+                 formatted_opponent_spread = opponent_spread_str
+
+        # Construct Game Line based on who is home/away
+        if fade_team_id == home_id: # Fading home team
+            game_line = f"Game: {opponent_display} ({formatted_opponent_spread}) vs. {fade_display} ({formatted_spread})"
+        else: # Fading away team
+            game_line = f"Game: {fade_display} ({formatted_spread}) vs. {opponent_display} ({formatted_opponent_spread})"
 
         # Message based on game state
         if not completed:
-            # Pre-game alert
+            # Pre-game alert (Desired Format 1.1)
             message_lines = [
-                f"🚨 {header[0]} 🚨",
-                header[1],
-                header[2],
-                f"Reason: Low ticket count ({fade_tickets:.1f}%) and low money ({fade_money:.1f}%) suggest weak public interest.",
-                header[4],
-                f"Bet Against: <b>{fade_display} {formatted_spread}</b> (Odds: {spread_odds_str or 'N/A'})",
+                f"🚨Fade Alert 🚨",
+                f"Sport: {sport_name}",
+                game_line,
+                f"Percentage of Total Bets on {fade_display}: {fade_tickets:.1f}%",
+                f"Percentage of Total Money on {fade_display}: {fade_money:.1f}%",
+                f"{stars} ({rating}-Star Fade)",
+                f"Take: {fade_display} ({formatted_spread})", # Removed odds, changed wording
             ]
             # Add start time if available
             start_time_str = game.get('start_time')
@@ -210,32 +229,36 @@ def format_fade_alert(game: dict, sport: str = "nba", completed: bool = False, w
         else:
             # Post-game result logic
             if winner_covered_spread is True:
+                # Winner state (Desired Format 1.2.1)
                 result_icon = "✅✅✅"
-                result_text = "Fade Successful!"
-                outcome = f"Result: {opponent_display} covered the spread against {fade_display}."
+                result_header = f"{result_icon} Fade Alert Result {result_icon}"
+                result_line = f"Winner: {fade_display} ({formatted_spread}) {result_icon}"
             elif winner_covered_spread is False:
-                result_icon = "❌❌❌"
-                result_text = "Fade Failed"
-                outcome = f"Result: {fade_display} covered the spread."
+                 # Loser state (Desired Format 1.2.2)
+                result_icon = "❌"
+                result_header = f"{result_icon}Fade Alert Result {result_icon}"
+                result_line = f"Loser: {fade_display} ({formatted_spread}) {result_icon}"
             else:
+                # Uncertain state (Keep previous icons/text for this edge case)
                 result_icon = "❓❓❓"
-                result_text = "Fade Result Uncertain"
-                outcome = "Result: Outcome unclear (push or data issue)."
+                result_header = f"{result_icon} Fade Result Uncertain {result_icon}"
+                result_line = "Result: Outcome unclear (push or data issue)."
 
             message_lines = [
-                f"{result_icon} {result_text} ({sport_name}) {result_icon}",
-                header[1],
-                header[2],
-                header[3],
-                header[4],
-                outcome,
+                result_header,
+                f"Sport: {sport_name}",
+                game_line,
+                f"Percentage of Total Bets on {fade_display}: {fade_tickets:.1f}%",
+                f"Percentage of Total Money on {fade_display}: {fade_money:.1f}%",
+                f"{stars} ({rating}-Star Fade)",
+                result_line,
             ]
+            # Add game scores if available
+            if game.get('boxscore'):
+                away_score = game['boxscore'].get('total_away_points', '?')
+                home_score = game['boxscore'].get('total_home_points', '?')
+                message_lines.append(f"Final Score: {away_display} {away_score} - {home_score} {home_display}")
 
-        # Add game scores if available and completed
-        if completed and game.get('boxscore'):
-            away_score = game['boxscore'].get('total_away_points', '?')
-            home_score = game['boxscore'].get('total_home_points', '?')
-            message_lines.append(f"Final Score: {away_display} {away_score} - {home_score} {home_display}")
 
         return "\n".join(message_lines)
 
