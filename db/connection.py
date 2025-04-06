@@ -10,10 +10,15 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME") # Get DB name from env
 
 # MongoDB connection
 client = MongoClient(MONGO_URI)
-db = client.get_database("db-mongodb-sgp1-64608") # Use get_database for clarity
+
+if not MONGO_DB_NAME:
+    raise ValueError("MONGO_DB_NAME environment variable not set.")
+
+db = client.get_database(MONGO_DB_NAME) # Use get_database for clarity
 settings_collection = db["settings"]
 
 # --- Maintenance Mode Logic ---
