@@ -36,6 +36,8 @@ async def cmd_help(message: types.Message):
 /start - Display the welcome message.
 /help - Show this help information.
 
+ /explain - Explain common betting terms.
+
 🏀 <b>NBA:</b>
 /nba [YYYYMMDD] - Get NBA games & odds for today or a specific date.
 /nbateam [team name] - Search today's NBA games by team name (e.g., Lakers).
@@ -86,3 +88,28 @@ def register_general_handlers(dp: Dispatcher):
         rate_limited_command(cooldown_message="Please wait before requesting /help again.")(cmd_help),
         Command("help")
     )
+
+    dp.message.register(
+        rate_limited_command(cooldown_message="Please wait before requesting /explain again.")(cmd_explain),
+        Command("explain")
+    )
+
+
+
+async def cmd_explain(message: types.Message):
+    """Handle /explain command - Explain common betting terms."""
+    logger.info(f"User {message.from_user.id} requested betting term explanations.")
+    explanation = (
+        "📚 <b>Common Betting Terms Explained:</b>\n\n"
+        "🔹 <b>Line/Spread:</b> The number of points used to handicap the favorite team. Betting on the favorite (- points) means they must win by more than the spread. Betting on the underdog (+ points) means they must win outright or lose by less than the spread.\n\n"
+        "🔹 <b>Moneyline (ML):</b> A bet on which team will win the game outright, regardless of the point spread. Odds determine the payout (negative odds for favorites, positive for underdogs).\n\n"
+        "🔹 <b>Total (Over/Under):</b> A bet on whether the combined final score of both teams will be OVER or UNDER a specific number set by the sportsbook.\n\n"
+        "   - <b>Over:</b> Betting the combined score will be HIGHER than the total line.\n"
+        "   - <b>Under:</b> Betting the combined score will be LOWER than the total line.\n\n"
+        "🔹 <b>Fade:</b> Betting *against* a particular outcome, often one that is heavily favored by the public (high ticket percentage) but not necessarily backed by sharp money (money percentage) or implied odds."
+    )
+    try:
+        await message.answer(explanation, parse_mode='HTML')
+    except Exception as e:
+        logger.error(f"Error sending explanation: {e}", exc_info=True)
+        await message.answer("❌ Sorry, couldn't send the explanation.")
