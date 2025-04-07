@@ -10,9 +10,15 @@ def get_ncaab_data(date=None):
         # Get Eastern time date
         date_str, _ = get_eastern_time_date(date)
         
-        # Make API request
-        params = {'date': date_str}
-        response_data = make_request(NCAAB_API_URL, params)
+        # Make API request with necessary parameters
+        params = {
+            'date': date_str,
+            'division': 'D1',      # Required parameter based on testing
+            'periods': 'event',    # Required parameter based on testing
+            'tournament': '0'      # Required parameter based on testing
+            # 'bookIds': '15,30,75,123,69,68,972,71,247,79' # Optional: Controls which books are in response, but not needed to get games
+        }
+        response_data = make_request(NCAAB_API_URL, params=params)
 
         # Store the raw response before formatting (if successful)
         if response_data:
