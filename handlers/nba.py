@@ -46,8 +46,11 @@ async def cmd_nba(message: types.Message):
         # Send header
         await message.answer(f"🏀 <b>NBA Games for {date}</b> ({time_str})")
 
-        # Send games in chunks
-        await send_games_in_chunks(message, games, "nba")
+        # Send game info individually
+        for game in games:
+            game_info = format_game_info(game, "nba")
+            await message.answer(game_info)
+            await asyncio.sleep(0.1) # Small delay between messages
 
     except Exception as e:
         logger.error(f"Error in cmd_nba: {e}", exc_info=True)
