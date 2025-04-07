@@ -54,8 +54,18 @@ def format_game_info(game: dict, sport: str = "nba") -> str:
         away_spread, away_odds = get_spread_info(game, away_id)
         
         # Format spread info for display
-        home_spread_str = f"{home_spread} ({home_odds})" if home_spread else "N/A"
-        away_spread_str = f"{away_spread} ({away_odds})" if away_spread else "N/A"
+        # --- Add Logging ---
+        logger.debug(f"Formatting spread for game {game.get('game_id', 'N/A')}: home_id={home_id}, home_spread='{home_spread}' (type: {type(home_spread)}), home_odds='{home_odds}' (type: {type(home_odds)})")
+        logger.debug(f"Formatting spread for game {game.get('game_id', 'N/A')}: away_id={away_id}, away_spread='{away_spread}' (type: {type(away_spread)}), away_odds='{away_odds}' (type: {type(away_odds)})")
+        # --- End Logging ---
+        # Format spread info defensively, checking for None odds
+        home_spread_str = f"{home_spread}" if home_spread else "N/A"
+        if home_spread and home_odds is not None:
+            home_spread_str += f" ({home_odds})"
+
+        away_spread_str = f"{away_spread}" if away_spread else "N/A"
+        if away_spread and away_odds is not None:
+            away_spread_str += f" ({away_odds})"
         
         # Format based on game status
         if status.lower() in ['complete', 'closed']:
@@ -223,9 +233,24 @@ def format_fade_alert(game: dict, opportunity: dict, result_status: Optional[str
         message_lines.append(f"\n✅ <b>Suggested Fade:</b>")
         # Remove bullet points and leading spaces
         message_lines.append(f"{result_prefix} <b>{bet_against_label}</b>")
+        # Add clarification of what is being faded
+        fade_type_clarification = f"(Fading {faded_outcome_full_label} {market})"
+        message_lines.append(fade_type_clarification)
 
             # Add Fade Rating at the end (indent this inside the try block)
         message_lines.append(f"\nFade Rating : {stars}") # Correct indentation
+
+        # Add explanation based on market type
+        explanation = ""
+        if market == 'Total':
+            explanation = "<i>Fading the total means betting on the opposite outcome to what the public heavily favors. 'Over' means betting the combined score will be higher than the line; 'Under' means betting it will be lower.</i>"
+        elif market == 'Spread':
+            explanation = "<i>Fading the spread means betting on the opposing team to cover the point spread against the publicly favored side.</i>"
+        elif market == 'Moneyline':
+            explanation = "<i>Fading the moneyline means betting on the opposing team to win outright against the publicly favored side.</i>"
+
+        if explanation:
+            message_lines.append(f"\n{explanation}")
 
             # Return inside the try block
         return "\n".join(message_lines) # Correct indentation
