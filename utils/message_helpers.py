@@ -3,13 +3,13 @@ from aiogram import Bot, types
 from logging_setup import logger
 from utils.formatters import format_game_info
 
-async def send_long_message(chat_id: int, text: str, max_length: int = 4096):
+async def send_long_message(chat_id: int, text: str, parse_mode: str = None, max_length: int = 4096):
     """Sends a long message by splitting it into chunks."""
     from bot import bot  # Import here to avoid circular imports
     
     if len(text) <= max_length:
         try:
-            await bot.send_message(chat_id, text)
+            await bot.send_message(chat_id, text, parse_mode=parse_mode)
         except Exception as e:
             logger.error(f"Failed to send message chunk to {chat_id}: {e}")
         return
@@ -29,7 +29,7 @@ async def send_long_message(chat_id: int, text: str, max_length: int = 4096):
 
     for part in parts:
         try:
-            await bot.send_message(chat_id, part)
+            await bot.send_message(chat_id, part, parse_mode=parse_mode)
             await asyncio.sleep(0.1) # Small delay between parts
         except Exception as e:
             logger.error(f"Failed to send message chunk to {chat_id}: {e}")
@@ -38,7 +38,7 @@ async def send_games_in_chunks(message: types.Message, games: list, sport: str):
     """Formats and sends a list of games in chunks."""
     current_message_parts = []
     current_length = 0
-    max_chunk_length = 4000 # Slightly less than limit for safety
+    max_chunk_length = 3900 # Reduce further for more safety buffer
 
     for game in games:
         game_text = format_game_info(game, sport)
