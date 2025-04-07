@@ -13,7 +13,7 @@ def get_fade_alert_stats(sport=None, days=30):
         cutoff_date = datetime.now(pytz.UTC) - timedelta(days=days)
         match = {
             "created_at": {"$gte": cutoff_date},
-            "status": {"$in": ["winner", "loser"]}
+            "status": {"$in": ["won", "lost"]} # Corrected status values
         }
         if sport:
             match["sport"] = sport
@@ -28,7 +28,7 @@ def get_fade_alert_stats(sport=None, days=30):
                     },
                     "total": {"$sum": 1},
                     "winners": {
-                        "$sum": {"$cond": [{"$eq": ["$status", "winner"]}, 1, 0]}
+                        "$sum": {"$cond": [{"$eq": ["$status", "won"]}, 1, 0]} # Corrected status value
                     }
                 }
             },

@@ -190,17 +190,46 @@ async def cmd_fadehistory(message: types.Message):
                 history_msg.append(f"\n{icon} <b>{sport_name} Recent Fade Results:</b>")
                 for alert in alerts_list:
                     date = alert.get('date', 'N/A')
-                    teams = alert.get('teams', 'Unknown Matchup')
-                    fade_team = alert.get('fade_team', 'Unknown Team')
+                    # Use the stored matchup and determine faded team based on label
+                    teams = alert.get('matchup', 'Unknown Matchup')
+                    faded_label = alert.get('faded_outcome_label', '')
+                    home_name = alert.get('home_team_name', 'Home')
+                    away_name = alert.get('away_team_name', 'Away')
+                    market = alert.get('market', '')
+                    faded_value = alert.get('faded_value')
+
+                    fade_team_display = "Unknown"
+                    if market == 'Spread' or market == 'Moneyline':
+                        fade_team_display = home_name if faded_label == 'Home' else away_name
+                    elif market == 'Total':
+                         # For Totals, show the Over/Under line being faded
+                         faded_value_str = f" ({faded_value})" if faded_value is not None else ""
+                         fade_team_display = f"{faded_label}{faded_value_str}"
                     rating = alert.get('rating', 0)
-                    result = alert.get('result', 'unknown').lower()
+                    status = alert.get('status', 'unknown').lower() # Use 'status' key
                     
-                    result_icon = '✅' if result == 'win' else '❌' if result == 'loss' else '⚖️' 
+                    # Determine icon and text based on status
+                    if status == 'won':
+                        result_icon = '✅'
+                        result_text = 'WON'
+                    elif status == 'lost':
+                        result_icon = '❌'
+                        result_text = 'LOST'
+                    elif status == 'pending':
+                        result_icon = '⏳'
+                        result_text = 'PENDING (Result TBD)' # Clarify meaning
+                    elif status == 'push': # Assuming 'push' might be a status later
+                         result_icon = '⚖️'
+                         result_text = 'PUSH'
+                    else: # Handle 'error' or other unknown statuses
+                        result_icon = '❓'
+                        result_text = status.upper() # Show the actual status if unknown
+
                     stars = '⭐' * rating
-                    
+
                     history_msg.append(
                         f"{date}: {teams}\n"
-                        f"Faded: {fade_team} {stars} - {result_icon} {result.upper()}"
+                        f"Faded: {fade_team_display} {stars} - {result_icon} {result_text}"
                     )
             else:
                 history_msg.append(f"\n{icon} <b>{sport_name}:</b> No recent fade history.")
@@ -213,7 +242,7 @@ async def cmd_fadehistory(message: types.Message):
 
         # Send potentially long message in chunks
         full_message = "\n".join(filter(None, history_msg))
-        await send_long_message(message.chat.id, full_message)
+        await send_long_message(message.chat.id, full_message, parse_mode='HTML')
 
     except Exception as e:
         logger.error(f"Error in cmd_fadehistory: {e}", exc_info=True)

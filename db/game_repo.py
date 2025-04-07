@@ -48,7 +48,7 @@ def _process_game_data(raw_game_data: dict) -> Optional[dict]:
             'start_time': raw_game_data.get('start_time'),
             'num_bets': raw_game_data.get('num_bets'),
             'boxscore': raw_game_data.get('boxscore'),
-            'winning_team_id': raw_game_data.get('winner_id'), # Use winner_id from raw data
+            'winning_team_id': raw_game_data.get('winning_team_id'), # Corrected key from 'winner_id'
             'sport': raw_game_data.get('sport'), # Ensure sport is carried over if added before storage
             'date': raw_game_data.get('date'),   # Ensure date is carried over if added before storage
             'home_team': None, # Initialize

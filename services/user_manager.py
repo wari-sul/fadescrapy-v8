@@ -3,7 +3,7 @@ import time
 from collections import defaultdict
 from typing import Tuple, Optional, Dict
 from logging_setup import logger
-import db
+from db.user_repo import save_user_stats # Import the specific function
 
 class UserManager:
     def __init__(self):
@@ -97,8 +97,8 @@ class UserManager:
              return
 
         try:
-            # Ensure db.save_user_stats is an async function
-            await db.save_user_stats(
+            # Call the imported function directly
+            await save_user_stats(
                 user_id=user_id,
                 commands=dict(stats_copy.get('commands', {})),
                 last_seen=stats_copy.get('last_seen', 0),

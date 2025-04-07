@@ -29,8 +29,9 @@ async def cmd_warn(message: types.Message):
         args = message.text.split(maxsplit=2)
         if len(args) < 3:
             await message.answer(
-                "Usage: `/warn <user_id> <reason>`\n"
-                "Example: `/warn 123456 Spamming commands`"
+                "Usage: `/warn <user\\_id> <reason>`\n"  # Escape _ for MarkdownV2
+                "Example: `/warn 123456 Spamming commands`",
+                parse_mode="MarkdownV2"
             )
             return
 
@@ -49,8 +50,11 @@ async def cmd_warn(message: types.Message):
         await user_manager.warn_user(user_id, reason, message.from_user.id)
         warning_count = len(user_manager.get_warnings(user_id))
 
-        admin_feedback = f"⚠️ User {user_id} has been warned.\nReason: {reason}\nTotal warnings: {warning_count}"
-        user_notification = f"⚠️ You have received warning #{warning_count}.\nReason: {reason}\n\n"
+        from aiogram.utils.markdown import hbold, hitalic, hcode, hlink, hpre, escape_md # Import escape_md
+        escaped_reason = escape_md(reason) # Escape user-provided reason
+
+        admin_feedback = f"⚠️ User `{user_id}` has been warned.\nReason: {escaped_reason}\nTotal warnings: {warning_count}" # Use Markdown code format for ID
+        user_notification = f"⚠️ You have received warning #{warning_count}.\nReason: {escaped_reason}\n\n"
 
         # Auto-ban logic (e.g., on 3rd warning)
         if warning_count >= 3:
@@ -58,17 +62,17 @@ async def cmd_warn(message: types.Message):
             ban_reason = f"Automatic {ban_duration_hours}h ban after {warning_count} warnings."
             await user_manager.tempban_user(user_id, ban_duration_hours, ban_reason, message.from_user.id)
 
-            admin_feedback += f"\n\n🚫 User automatically banned for {ban_duration_hours} hours due to repeated warnings."
-            user_notification += f"🚫 **You have been automatically banned for {ban_duration_hours} hours.**"
+            admin_feedback += f"\n\n🚫 User `{user_id}` automatically banned for {ban_duration_hours} hours due to repeated warnings." # Use Markdown code format for ID
+            user_notification += f"🚫 *You have been automatically banned for {hbold(str(ban_duration_hours))} hours.*" # Use MarkdownV2 bold
         else:
             user_notification += f"Accumulating multiple warnings ({warning_count}/3) may lead to a temporary ban."
 
-        await message.answer(admin_feedback)
+        await message.answer(admin_feedback, parse_mode="MarkdownV2")
 
         # Notify the warned user
         try:
             from bot import bot  # Import here to avoid circular imports
-            await bot.send_message(user_id, user_notification)
+            await bot.send_message(user_id, user_notification, parse_mode="MarkdownV2")
         except TelegramAPIError as e:
             logger.warning(f"Could not notify user {user_id} about warning (they might have blocked the bot): {e}")
         except Exception as e:
@@ -91,8 +95,9 @@ async def cmd_tempban(message: types.Message):
         args = message.text.split(maxsplit=3)
         if len(args) < 4:
             await message.answer(
-                "Usage: `/tempban <user_id> <hours> <reason>`\n"
-                "Example: `/tempban 123456 48 Repeated spam`"
+                "Usage: `/tempban <user\\_id> <hours> <reason>`\n" # Escape _ for MarkdownV2
+                "Example: `/tempban 123456 48 Repeated spam`",
+                parse_mode="MarkdownV2"
             )
             return
 
@@ -118,21 +123,29 @@ async def cmd_tempban(message: types.Message):
             await message.answer("❌ Please provide a reason for the temporary ban.")
             return
 
+        from aiogram.utils.markdown import hbold, hitalic, hcode, hlink, hpre, escape_md # Import escape_md (if not already imported)
+        escaped_reason = escape_md(reason) # Escape user-provided reason
+
         await user_manager.tempban_user(user_id, duration_hours, reason, message.from_user.id)
         await message.answer(
-            f"🚫 User {user_id} has been temporarily banned.\n"
+            f"🚫 User `{user_id}` has been temporarily banned.\n" # Use Markdown code format for ID
             f"Duration: {duration_hours} hours\n"
-            f"Reason: {reason}"
+            f"Reason: {escaped_reason}",
+            parse_mode="MarkdownV2"
         )
 
         # Notify the banned user
         try:
             from bot import bot  # Import here to avoid circular imports
+            from aiogram.utils.markdown import hbold, escape_md # Import escape_md (if not already imported)
+            escaped_reason = escape_md(reason) # Escape user-provided reason
+
             await bot.send_message(
                 user_id,
-                f"🚫 You have been temporarily banned for **{duration_hours} hours**.\n"
-                f"Reason: {reason}\n\n"
-                f"You will be able to use most bot features again after the ban expires."
+                f"🚫 You have been temporarily banned for {hbold(str(duration_hours))} hours.\n" # Use MarkdownV2 bold
+                f"Reason: {escaped_reason}\n\n"
+                f"You will be able to use most bot features again after the ban expires.",
+                parse_mode="MarkdownV2"
             )
         except TelegramAPIError as e:
             logger.warning(f"Could not notify user {user_id} about ban (they might have blocked the bot): {e}")
@@ -428,7 +441,7 @@ async def cmd_config(message: types.Message):
         await message.answer("❌ This command is restricted to administrators.")
         return
 
-    from config import config  # Import here to avoid circular imports
+    # config is already imported at the top level
     
     args = message.text.split(maxsplit=2)
     # Usage: /config list | /config [setting] | /config [setting] [new_value]

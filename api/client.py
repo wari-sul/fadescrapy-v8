@@ -12,8 +12,15 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Common headers for API requests
+# Load API Token from environment variable
+ACTION_NETWORK_AUTH_TOKEN = os.getenv("ACTION_NETWORK_AUTH_TOKEN")
+if not ACTION_NETWORK_AUTH_TOKEN:
+    logger.warning("ACTION_NETWORK_AUTH_TOKEN environment variable not set. API requests may fail.")
+    # Provide a default or raise an error if the token is absolutely required
+    # ACTION_NETWORK_AUTH_TOKEN = "YOUR_DEFAULT_OR_PLACEHOLDER_TOKEN" # Example placeholder
+
 API_HEADERS = {
-    "authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InU9NDQ3NzA5MnQ9MTc0MjgwNzIwNjY0OSIsInVzZXJfaWQiOjQ0NzcwOTIsImlzcyI6InNwb3J0c0FjdGlvbiIsImFnZW50IjoiTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEzNC4wLjAuMCBTYWZhcmkvNTM3LjM2IiwiaXNSZXNldFRva2VuIjpmYWxzZSwiaXNTZXNzaW9uVG9rZW4iOmZhbHNlLCJzY29wZSI6W10sImV4cCI6MTc3NDM0MzIwNiwiaWF0IjoxNzQyODA3MjA2fQ.2h9kNxxBfxBK-7Os-8fS8X7fInXR5SHLA3ehQygTkkE",
+    "authorization": ACTION_NETWORK_AUTH_TOKEN or "", # Use loaded token or empty string if not found
     "accept": "application/json",
     "origin": "https://www.actionnetwork.com",
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"

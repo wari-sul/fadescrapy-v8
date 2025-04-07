@@ -48,7 +48,11 @@ async def cmd_ncaab(message: types.Message):
             return
 
         await message.answer(f"🏫 <b>NCAAB Games for {date}</b> ({time_str})")
-        await send_games_in_chunks(message, games, "ncaab")
+        # Send game info individually
+        for game in games:
+            game_info = format_game_info(game, "ncaab")
+            await message.answer(game_info)
+            await asyncio.sleep(0.1) # Small delay between messages
 
     except Exception as e:
         logger.error(f"Error in cmd_ncaab: {e}", exc_info=True)

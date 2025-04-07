@@ -478,6 +478,11 @@ async def process_new_fade_alerts(games: list, sport: str) -> List[str]:
                     # For now, using the label directly.
                     # Prepare data for storage based on the new opportunity structure
                     # Prepare data for storage based on the new opportunity structure
+                    # Extract team names from the game object (available in the outer loop)
+                    home_team_name = game.get('home_team', {}).get('display_name', 'Home')
+                    away_team_name = game.get('away_team', {}).get('display_name', 'Away')
+                    matchup_str = f"{away_team_name} @ {home_team_name}" # For easier display later
+
                     alert_data = {
                         'game_id': opp['game_id'],
                         'sport': opp['sport'],
@@ -492,7 +497,11 @@ async def process_new_fade_alerts(games: list, sport: str) -> List[str]:
                         'rating': opp['rating'], # Added rating
                         'reason': opp['reason'], # New reason based on T% vs IP
                         'status': 'pending',
-                        'created_at': datetime.now() # Use non-timezone aware for consistency? Check DB storage.
+                        'created_at': datetime.now(), # Use non-timezone aware for consistency? Check DB storage.
+                        # Add team info
+                        'home_team_name': home_team_name,
+                        'away_team_name': away_team_name,
+                        'matchup': matchup_str
                         # Removed threshold_used, team_id
                     }
 
